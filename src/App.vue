@@ -9,6 +9,14 @@
                 :loading ="loading"
                 class="elevation-1"
         >
+          <template v-slot:item.providers="{ item }">
+            <div v-for="(provider, key) in item.providers" :key="key">
+              <div>
+                {{ provider.name }}
+                <span v-if="item.providers.length !== key+1">,</span>
+              </div>
+            </div>
+          </template>
           <template v-slot:top>
             <v-toolbar flat>
               <v-toolbar-title>Clients</v-toolbar-title>
@@ -62,7 +70,10 @@
             </v-toolbar>
           </template>
           <template v-slot:item.actions="{ item }">
-            <v-icon small color="error" @click="">
+            <v-icon small color="primary" class="mx-5" @click="">
+              mdi-pencil
+            </v-icon>
+            <v-icon small color="error" @click="removeClient(item._id)">
               mdi-delete
             </v-icon>
           </template>
@@ -104,12 +115,13 @@ export default {
         },
         {
           text: 'Providers',
-          value: 'provider.name',
+          value: 'providers',
           sortable: false
         },
         {
           text: 'Actions',
           value: 'actions',
+          align: 'center',
           sortable: false
         },
       ],
@@ -121,6 +133,13 @@ export default {
     getAllClients(){
       ClientDataService.getAll().then(response=>{
         this.dataSet = response.data
+      }).catch(e=>{
+        console.log(e)
+      })
+    },
+    removeClient(id){
+      ClientDataService.delete(id).then(_=>{
+        window.location.reload()
       }).catch(e=>{
         console.log(e)
       })
