@@ -60,15 +60,47 @@
                                   outlined
                           ></v-text-field>
                         </v-col>
-                        <v-col cols="7">
+                        <v-col cols="7" v-if="!isEditing">
                           <v-text-field
                                   v-model="providersForm.name"
                                   label="Providers"
                                   outlined
                           ></v-text-field>
                         </v-col>
-                        <v-col cols="5">
+                        <v-col cols="5" v-if="!isEditing">
                           <v-btn color="primary" @click="addProvider" x-large>Add Provider</v-btn>
+                        </v-col>
+                        <v-col cols="12">
+                          <v-list flat subheader three-line>
+
+                            <v-list-item-group
+                                    v-model="providersGroup"
+                                    multiple
+                                    active-class=""
+
+                            >
+                              <v-list-item v-for="(provider, key) in providers" :key="key">
+                                <template v-slot:default="{ active }">
+                                  <div class="d-flex" @click="toggleSelectedProviders(key, active, provider._id)">
+                                    <v-list-item-action >
+                                      <v-checkbox  :input-value="active">{{ provider._id }}</v-checkbox>
+                                    </v-list-item-action>
+
+                                    <v-list-item-content class="row">
+                                      <div class="col-12 d-flex mx-4">
+                                        <v-list-item-title>{{ provider.name }}</v-list-item-title>
+                                        <v-icon @click="editProvider(provider)">mdi-pencil</v-icon>
+                                        <v-icon color="error" @click="removeProvider(provider._id)">mdi-delete</v-icon>
+                                      </div>
+
+                                    </v-list-item-content>
+                                  </div>
+
+                                </template>
+                              </v-list-item>
+
+                            </v-list-item-group>
+                          </v-list>
                         </v-col>
 
                       </v-row>
@@ -91,7 +123,7 @@
                     <v-btn color="primary"
                            class="white--text"
                            :loading="loading"
-                           @click=""
+                           @click="addClient(form._id)"
                     >
                       {{ btnText }}
                     </v-btn>
@@ -110,6 +142,38 @@
             </v-icon>
           </template>
         </v-data-table>
+
+        <v-dialog v-model="editProviderDialog" persistent max-width="350px">
+          <v-card>
+            <v-card-title>
+              <span class="headline">Edit Provider</span>
+            </v-card-title>
+
+            <v-card-text class="row">
+              <v-col cols="12">
+                <v-text-field
+                        v-model="providersForm.name"
+                        label="Name"
+                        outlined
+                ></v-text-field>
+              </v-col>
+            </v-card-text>
+            <v-card-actions class="pb-6">
+              <v-spacer></v-spacer>
+              <v-btn :loading="loading"
+                     @click="closeProviderDialog"
+              >
+                Close
+              </v-btn>
+              <v-btn :loading="loading"
+                     color="primary"
+                     @click="updateProvider(providersForm._id)"
+              >
+                Update
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
 
       </v-container>
     </v-main>
@@ -131,6 +195,7 @@ export default {
     return{
       loading: false,
       dialog: null,
+      editProviderDialog: null,
       headers:[
         {
           text: 'Name',
@@ -162,7 +227,9 @@ export default {
       isEditing: false,
       dataSet: [],
       providers: [],
+      providersGroup: [],
       providersForm:{
+        _id:'',
         name:''
       },
       form:{
@@ -198,6 +265,8 @@ export default {
       this.isEditing = true
       this.dialog = true
       this.form = client
+      console.log(client)
+      this.providersGroup = client.providers
     },
     getAllClients(){
       this.loading = true
@@ -209,14 +278,24 @@ export default {
         console.log(e)
       })
     },
-    addClient(){
+    addClient(id){
       this.loading = true
-      ClientDataService.create(this.form).then(_=>{
-        window.location.reload()
-      }).catch(e =>{
-        this.loading = false
-        console.log(e)
-      })
+      if(!this.isEditing){
+        ClientDataService.create(this.form).then(_=>{
+          window.location.reload()
+        }).catch(e =>{
+          this.loading = false
+          console.log(e)
+        })
+      }else{
+        ClientDataService.update(id, this.form).then(_=>{
+          window.location.reload()
+        }).catch(e =>{
+          this.loading = false
+          console.log(e)
+        })
+      }
+
     },
     removeClient(id){
       this.loading = true
@@ -232,12 +311,50 @@ export default {
       this.loading = true
       ProviderDataService.create(this.providersForm).then(_ =>{
         this.loading = false
-        this.providers.push(this.providersForm)
         this.providersForm.name = ''
       }).catch(e=>{
         this.loading = false
         console.log(e)
       })
+    },
+    editProvider(provider){
+      this.editProviderDialog = true
+      this.providersForm = provider
+      console.log(event, this.form.providers)
+    },
+    updateProvider(id){
+      ProviderDataService.update(id, this.providersForm).then(_=>{
+        this.editProviderDialog = false
+      }).catch(e=>{
+        console.log(e)
+      })
+    },
+    removeProvider(id){
+      this.loading = true
+      ProviderDataService.delete(id).then(_=>{
+        window.location.reload()
+      }).catch(e=>{
+        this.loading = false
+        console.log(e)
+      })
+    },
+    toggleSelectedProviders(index,status, id){
+      console.log(status)
+      if(!status){
+        console.log('add')
+        this.form.providers.push(id)
+      }else{
+        console.log('remove')
+        this.form.providers.splice(index, 1)
+      }
+      console.log(this.form.providers)
+    },
+    closeProviderDialog(){
+      this.editProviderDialog = false
+      this.providersForm = {
+        _id:'',
+        name:''
+      }
     }
   },
 
